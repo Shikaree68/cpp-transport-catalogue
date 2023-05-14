@@ -13,17 +13,21 @@ namespace TC {
 	namespace detail {
 		struct Stop {
 			std::string name;
-			Coordinates point;
+			Coordinates coordinates;
+		};
+
+		struct BusStat {
+			int total_stops{};
+			int unique_stops{};
+			uint64_t actual_distance{};
+			double curveture{};
 		};
 
 		struct Bus {
 			std::string name;
 			std::vector<Stop*> stops;
 			bool is_circle{ true };
-			int total_stops{};
-			int unique_stops{};
-			uint64_t actual_distance{};
-			double curveture{};
+			BusStat statistic;
 		};
 
 		struct BusComparator {
@@ -42,13 +46,13 @@ namespace TC {
 
 	class TransportCatalogue {
 	public:
-		void AddStop(detail::Stop&& stop);
-		detail::Stop* FindStop(const std::string_view& stop) const;
-		void AddBus(detail::Bus&& bus);
-		const detail::Bus* FindBus(const std::string_view& bus_name) const;
-		std::ostream& GetBusInfo(std::ostream& out, const std::string_view& bus_name) const;
-		std::ostream& GetStopInfo(std::ostream& out, const std::string_view& stop_name) const;
-		void AddDistance(std::pair<detail::Stop*, detail::Stop*> pair_stops, int distance_value);
+		void AddStop(const detail::Stop&& stop);
+		detail::Stop* FindStop(const std::string_view stop) const;
+		void AddBus(const detail::Bus&& bus);
+		const detail::Bus* FindBus(const std::string_view bus_name) const;
+		std::ostream& GetBusInfo(std::ostream& out, const std::string_view bus_name) const;
+		std::ostream& GetStopInfo(std::ostream& out, const std::string_view stop_name) const;
+		void SetDistance(std::pair<detail::Stop*, detail::Stop*> pair_stops, int distance_value);
 
 	private:
 		std::deque<detail::Stop> stops_;

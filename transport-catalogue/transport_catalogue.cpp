@@ -5,45 +5,45 @@
 
 using namespace std::string_literals;
 namespace TC {
-	void TransportCatalogue::AddStop(detail::Stop&& stop) {
+	void TransportCatalogue::AddStop(const detail::Stop&& stop) {
 		stops_.push_back(std::move(stop));
 		stopname_to_stop_[stops_.back().name] = &stops_.back();
 		stopname_to_buses_[stops_.back().name];
 	}
 
-	detail::Stop* TransportCatalogue::FindStop(const std::string_view& stop) const {
+	detail::Stop* TransportCatalogue::FindStop(const std::string_view stop) const {
 		return stopname_to_stop_.at(stop);
 	}
 
-	void TransportCatalogue::AddBus(detail::Bus&& bus) {
+	void TransportCatalogue::AddBus(const detail::Bus&& bus) {
 		buses_.emplace_back(std::move(bus));
-		buses_.back().total_stops = CountBusTotalStops(&buses_.back());
-		buses_.back().unique_stops = CountBusUniqueStops(&buses_.back());
+		buses_.back().statistic.total_stops = CountBusTotalStops(&buses_.back());
+		buses_.back().statistic.unique_stops = CountBusUniqueStops(&buses_.back());
 		{
 			auto distance = ComputeRouteDistance(&buses_.back());
-			buses_.back().actual_distance = std::move(distance.first);
-			buses_.back().curveture = std::move(distance.second);
+			buses_.back().statistic.actual_distance = std::move(distance.first);
+			buses_.back().statistic.curveture = std::move(distance.second);
 		}
 		busname_to_bus_[buses_.back().name] = &buses_.back();
 		FillStopnameToBuses(&buses_.back());
 	}
 
-	const detail::Bus* TransportCatalogue::FindBus(const std::string_view& bus_name) const {
+	const detail::Bus* TransportCatalogue::FindBus(const std::string_view bus_name) const {
 		if (busname_to_bus_.count(bus_name)) {
 			return busname_to_bus_.at(bus_name);
 		}
 		return nullptr;
 	}
 
-	std::ostream& TransportCatalogue::GetBusInfo(std::ostream& out, const std::string_view& bus_name) const {
+	std::ostream& TransportCatalogue::GetBusInfo(std::ostream& out, const std::string_view bus_name) const {
 		const detail::Bus* bus_ptr = FindBus(bus_name);
 		out << "Bus "s << bus_name;
 		if (bus_ptr != nullptr) {
 			out << ": "s
-				<< bus_ptr->total_stops << " stops on route, "s
-				<< bus_ptr->unique_stops << " unique stops, "s << std::setprecision(6)
-				<< bus_ptr->actual_distance << " route length, "s
-				<< bus_ptr->curveture << " curvature"s << std::endl;
+				<< bus_ptr->statistic.total_stops << " stops on route, "s
+				<< bus_ptr->statistic.unique_stops << " unique stops, "s << std::setprecision(6)
+				<< bus_ptr->statistic.actual_distance << " route length, "s
+				<< bus_ptr->statistic.curveture << " curvature"s << std::endl;
 		}
 		else {
 			out << ": not found"s << std::endl;
@@ -51,7 +51,7 @@ namespace TC {
 		return out;
 	}
 
-	std::ostream& TransportCatalogue::GetStopInfo(std::ostream& out, const std::string_view& stop_name) const {
+	std::ostream& TransportCatalogue::GetStopInfo(std::ostream& out, const std::string_view stop_name) const {
 		out << "Stop "s << stop_name;
 		if (stopname_to_buses_.count(stop_name)) {
 			if (stopname_to_buses_.at(stop_name).size()) {
@@ -71,7 +71,7 @@ namespace TC {
 		return out;
 	}
 
-	void TransportCatalogue::AddDistance(std::pair<detail::Stop*, detail::Stop*> pair_stops, int distance_value) {
+	void TransportCatalogue::SetDistance(std::pair<detail::Stop*, detail::Stop*> pair_stops, int distance_value) {
 
 		stops_distance_.insert({ pair_stops, distance_value });
 	}
@@ -108,7 +108,7 @@ namespace TC {
 	double TransportCatalogue::ComputeGeoDistance(const detail::Bus* bus) const {
 		double geo_distance{};
 		for (size_t i{ 1 }; i < bus->stops.size(); ++i) {
-			geo_distance += ComputeDistance(bus->stops[i - 1]->point, bus->stops[i]->point);
+			geo_distance += ComputeDistance(bus->stops[i - 1]->coordinates, bus->stops[i]->coordinates);
 		}
 		if (!bus->is_circle) {
 			geo_distance *= 2;
@@ -119,20 +119,15 @@ namespace TC {
 	uint64_t TransportCatalogue::ComputeActualDistance(const detail::Bus* bus) const {
 		uint64_t actual_distance{};
 		for (size_t i{ 1 }; i < bus->stops.size(); ++i) {
-			if (stops_distance_.find({ bus->stops[i - 1], bus->stops[i] }) != stops_distance_.end()) {
-				actual_distance += stops_distance_.at({ bus->stops[i - 1], bus->stops[i] });
-			}
-			else if (stops_distance_.find({ bus->stops[i], bus->stops[i - 1] }) != stops_distance_.end()) {
-				actual_distance += stops_distance_.at({ bus->stops[i], bus->stops[i - 1] });
-			}
-
+			std::pair<TC::detail::Stop*, TC::detail::Stop*> point{ bus->stops[i - 1], bus->stops[i] };
+			actual_distance += stops_distance_.find({ point.first, point.second }) != stops_distance_.end() 
+				? stops_distance_.at({ point.first, point.second })
+				: stops_distance_.at({ point.second, point.first });
+			
 			if (!bus->is_circle) {
-				if (stops_distance_.find({ bus->stops[i], bus->stops[i - 1] }) != stops_distance_.end()) {
-					actual_distance += stops_distance_.at({ bus->stops[i], bus->stops[i - 1] });
-				}
-				else if (stops_distance_.find({ bus->stops[i - 1], bus->stops[i] }) != stops_distance_.end()) {
-					actual_distance += stops_distance_.at({ bus->stops[i - 1], bus->stops[i] });
-				}
+				actual_distance += stops_distance_.find({ point.second, point.first }) != stops_distance_.end()
+					? stops_distance_.at({ point.second, point.first })
+					: stops_distance_.at({ point.first, point.second });
 			}
 		}
 		return actual_distance;
