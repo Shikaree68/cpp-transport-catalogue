@@ -1,13 +1,14 @@
-#include "geo.h"
-#include "input_reader.h"
-#include "stat_reader.h"
-#include "transport_catalogue.h"
-#include <fstream>
+#include "json_reader.h"
+#include "request_handler.h"
+#include "map_renderer.h"
+#include <string_view>
 #include <iostream>
+#include <fstream>
 
+using namespace std::string_view_literals;
 
 int main() {
-	TC::TransportCatalogue tc;
-	TC::ReadData(std::cin, tc);
-	TC::HandleQuery(tc);
+    TC::TransportCatalogue tc;
+    JSONFacade json(tc, std::cin);
+    json.HandleRequests(std::cout);
 }

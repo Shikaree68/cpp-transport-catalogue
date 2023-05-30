@@ -6,17 +6,12 @@
 using namespace std::string_literals;
 namespace TC {
 	void TransportCatalogue::AddStop(const detail::Stop&& stop) {
-		stops_.push_back(std::move(stop));
+		stops_.push_back(stop);
 		stopname_to_stop_[stops_.back().name] = &stops_.back();
 		stopname_to_buses_[stops_.back().name];
 	}
-
-	detail::Stop* TransportCatalogue::FindStop(const std::string_view stop) const {
-		return stopname_to_stop_.at(stop);
-	}
-
 	void TransportCatalogue::AddBus(const detail::Bus&& bus) {
-		buses_.emplace_back(std::move(bus));
+		buses_.emplace_back(bus);
 		buses_.back().statistic.total_stops = CountBusTotalStops(&buses_.back());
 		buses_.back().statistic.unique_stops = CountBusUniqueStops(&buses_.back());
 		{
@@ -28,11 +23,35 @@ namespace TC {
 		FillStopnameToBuses(&buses_.back());
 	}
 
+	const detail::Stop* TransportCatalogue::FindStop(const std::string_view stop) const {
+		if (stopname_to_stop_.count(stop)) {
+			return stopname_to_stop_.at(stop);
+		}
+		return nullptr;
+	}
 	const detail::Bus* TransportCatalogue::FindBus(const std::string_view bus_name) const {
 		if (busname_to_bus_.count(bus_name)) {
 			return busname_to_bus_.at(bus_name);
 		}
 		return nullptr;
+	}
+
+	const std::deque<detail::Stop>& TransportCatalogue::GetAllStops() const {
+		return stops_;
+	}
+
+	const std::deque<detail::Bus>& TransportCatalogue::GetAllBuses() const {
+		return buses_;
+	}
+
+	std::set<const detail::Bus*, detail::BusComparator> TransportCatalogue::GetAllBusesSorted() const {
+		std::set<const detail::Bus*, detail::BusComparator> sorted_buses;
+		for (const detail::Bus& bus : buses_) {
+			if (bus.stops.size()) {
+				sorted_buses.insert(&bus);
+			}
+		}
+		return sorted_buses;
 	}
 
 	std::ostream& TransportCatalogue::GetBusInfo(std::ostream& out, const std::string_view bus_name) const {
@@ -50,7 +69,6 @@ namespace TC {
 		}
 		return out;
 	}
-
 	std::ostream& TransportCatalogue::GetStopInfo(std::ostream& out, const std::string_view stop_name) const {
 		out << "Stop "s << stop_name;
 		if (stopname_to_buses_.count(stop_name)) {
@@ -71,7 +89,17 @@ namespace TC {
 		return out;
 	}
 
-	void TransportCatalogue::SetDistance(std::pair<detail::Stop*, detail::Stop*> pair_stops, int distance_value) {
+	const std::set<detail::Bus*, detail::BusComparator>* TransportCatalogue::GetBusesByStop(const std::string_view stop_name) const {
+		if (stopname_to_buses_.count(stop_name)) {
+			if (stopname_to_buses_.at(stop_name).size()) {
+					return &stopname_to_buses_.at(stop_name);
+			}
+		} 
+		return {};
+	}
+	
+
+	void TransportCatalogue::SetDistance(std::pair<const detail::Stop*, const detail::Stop*> pair_stops, int distance_value) {
 
 		stops_distance_.insert({ pair_stops, distance_value });
 	}
@@ -86,10 +114,9 @@ namespace TC {
 		}
 		return result;
 	}
-
 	int TransportCatalogue::CountBusUniqueStops(const detail::Bus* bus) const {
-		std::vector<detail::Stop*> stops;
-		auto lambda = [&stops](detail::Stop* stop) {
+		std::vector<const detail::Stop*> stops;
+		auto lambda = [&stops](const detail::Stop* stop) {
 			if (std::find(stops.begin(), stops.end(), stop) == stops.end()) {
 				stops.push_back(stop);
 			}
@@ -104,7 +131,6 @@ namespace TC {
 		double curveture{ static_cast<double>(actual_distance) / ComputeGeoDistance(bus) };
 		return { actual_distance, curveture };
 	}
-
 	double TransportCatalogue::ComputeGeoDistance(const detail::Bus* bus) const {
 		double geo_distance{};
 		for (size_t i{ 1 }; i < bus->stops.size(); ++i) {
@@ -115,15 +141,14 @@ namespace TC {
 		}
 		return geo_distance;
 	}
-
 	uint64_t TransportCatalogue::ComputeActualDistance(const detail::Bus* bus) const {
 		uint64_t actual_distance{};
 		for (size_t i{ 1 }; i < bus->stops.size(); ++i) {
-			std::pair<TC::detail::Stop*, TC::detail::Stop*> point{ bus->stops[i - 1], bus->stops[i] };
-			actual_distance += stops_distance_.find({ point.first, point.second }) != stops_distance_.end() 
+			std::pair<const TC::detail::Stop*, const TC::detail::Stop*> point{ bus->stops[i - 1], bus->stops[i] };
+			actual_distance += stops_distance_.find({ point.first, point.second }) != stops_distance_.end()
 				? stops_distance_.at({ point.first, point.second })
 				: stops_distance_.at({ point.second, point.first });
-			
+
 			if (!bus->is_circle) {
 				actual_distance += stops_distance_.find({ point.second, point.first }) != stops_distance_.end()
 					? stops_distance_.at({ point.second, point.first })
@@ -139,3 +164,4 @@ namespace TC {
 		}
 	}
 }
+
