@@ -10,11 +10,10 @@ void PrintJSON(const json::Node& node, std::ostream& out) {
 }
 
 JSONFacade::JSONFacade(TC::TransportCatalogue& db, std::istream& input) 
-    : db_(db)
-    , node_(json::Load(input).GetRoot())
-    , input_(input) {
-    if(node_.IsMap())
-    FillDB();
+    : db_(db), node_(json::Load(input).GetRoot()), input_(input) {
+    if (node_.IsMap()) {
+        FillDB();
+    }
 }
 
 void JSONFacade::FillDB() {

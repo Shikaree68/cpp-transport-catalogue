@@ -42,11 +42,13 @@ namespace renderer {
         //Цветовая палитра.Непустой массив.
         std::vector<svg::Color> color_palette;
     };
+
     //отрисовка маршрутов - линий
     void MapRenderer(std::ostream& output, renderer::RenderSettings&& settings
         , std::set<const TC::detail::Bus*, TC::detail::BusComparator>&& routes);
+    void SortAndClean(std::vector<geo::Coordinates>& coordinates);
+    void PrintMap(std::ostream& output, std::map<std::string, svg::Document>& rended_routes);
         //принимает отсортированный вектор с векторами точек    
-
     class SphereProjector {
     public:
         // points_begin и points_end задают начало и конец интервала элементов geo::Coordinates

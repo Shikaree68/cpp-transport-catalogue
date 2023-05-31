@@ -35,17 +35,11 @@ using namespace std::literals;
     // Функцию следует использовать после считывания открывающего символа ":
     std::string LoadString(std::istream& input);
 
-    class Node {
+    class Node : public Value {
     public:
-        Node(std::nullptr_t) : value_(nullptr) {}
-        Node(Array array) : value_(std::move(array)) {}
-        Node(Dict map) : value_(std::move(map)) {}
-        Node(bool val) : value_(val) {}
-        Node(int value) : value_(value) {}
-        Node(double value) : value_(value) {}
-        Node(std::string value) : value_(std::move(value)) {}
-        Node(Value& v) : value_(std::move(v)) {}
-        Node() : value_(nullptr) {}
+        using Value::variant;
+        Node(Value& v) : Value(std::move(v)) {}
+        Node() : Value(nullptr) {}
 
         bool IsNull() const;
         bool IsArray() const;
@@ -63,9 +57,6 @@ using namespace std::literals;
         Array& AsArray();
         Dict& AsMap();
         const Value& GetValue() const; 
-
-    private:
-        Value value_;
     };
 
     bool operator==(const Node& ln, const Node& rn);
@@ -92,24 +83,21 @@ using namespace std::literals;
         }
     };
     */
-    //int, double, string, bool
-    template <typename Value>
-    void PrintValue(const Value& value, std::ostream& out) {
-        if (std::is_same<bool, Value>::value) {
-            if (value) {
-                out << "true"sv;
-            }
-            else out << "false"sv;
-        }
-        else {
+
+    struct VisitPrinter {
+        std::ostream& out;
+        void operator()(bool value);
+        void operator()(const Array& array);
+        void operator()(const Dict& dict);
+        void operator()(const std::string& str);
+        void operator()(std::nullptr_t);
+        template <typename Value>
+        void operator()(const Value& value) {
             out << value;
         }
-    }
-    void PrintValue(const std::string& str, std::ostream& out);
-    void PrintValue(const Array& array, std::ostream& out);
-    void PrintValue(const Dict& dict, std::ostream& out);
-    // Перегрузка функции PrintValue для вывода значений null
-    void PrintValue(std::nullptr_t, std::ostream& out);
+
+    };
+    void PrintValue(Value v, std::ostream& out);
 
     class Document {
     public:

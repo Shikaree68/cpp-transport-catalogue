@@ -23,13 +23,9 @@ namespace renderer {
                 coordinates.push_back(stop->coordinates);
                 stops_for_render.insert(stop);
             }
-        }
-        //сортируем и избавляемся от лишних координат для отрисовки без повторений
-        {
-            std::sort(coordinates.begin(), coordinates.end());
-            auto last = std::unique(coordinates.begin(), coordinates.end());
-            coordinates.erase(last, coordinates.end());
-        }
+        }       
+
+        SortAndClean(coordinates);
 
         const SphereProjector sphere_projector_{ 
               coordinates.begin()
@@ -144,13 +140,22 @@ namespace renderer {
 
             rended_routes["routes"s].Add(std::move(svg_route));
         }
+        PrintMap(output, rended_routes);
+    }
+    //сортируем и избавляемся от лишних координат для отрисовки без повторений
+    void SortAndClean(std::vector<geo::Coordinates>& coordinates) {
+        std::sort(coordinates.begin(), coordinates.end());
+        auto last = std::unique(coordinates.begin(), coordinates.end());
+        coordinates.erase(last, coordinates.end());
+    }
 
+    void PrintMap(std::ostream& output, std::map<std::string, svg::Document>& rended_routes) {
         if (!rended_routes.empty()) {
             rended_routes.at("routes"s)
-                .AddDocument(std::move(rended_routes.at("bus_names"s)))
-                .AddDocument(std::move(rended_routes.at("stop_points"s)))
-                .AddDocument(std::move(rended_routes.at("stop_names"s)))
-                .Render(output);
+                         .AddDocument(std::move(rended_routes.at("bus_names"s)))
+                         .AddDocument(std::move(rended_routes.at("stop_points"s)))
+                         .AddDocument(std::move(rended_routes.at("stop_names"s)))
+                         .Render(output);
         }
         else {
             svg::Document empty_doc;
