@@ -23,7 +23,7 @@ namespace renderer {
                 coordinates.push_back(stop->coordinates);
                 stops_for_render.insert(stop);
             }
-        }       
+        }
 
         SortAndClean(coordinates);
 
