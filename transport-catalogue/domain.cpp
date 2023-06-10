@@ -12,7 +12,6 @@ bool TC::detail::BusComparator::operator()(const Bus* lbus, const Bus* rbus) con
 	return lbus->name < rbus->name;
 }
 
-bool TC::detail::StopComparator::operator()(const Stop* lstop, const Stop* rstop) const
-{
+bool TC::detail::StopComparator::operator()(const Stop* lstop, const Stop* rstop) const {
 	return lstop->name < rstop->name;
 }

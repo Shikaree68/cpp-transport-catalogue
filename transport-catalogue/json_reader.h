@@ -9,6 +9,7 @@
 #include "request_handler.h"
 #include "transport_catalogue.h"
 #include "map_renderer.h"
+#include "json_builder.h"
 
 
 /*
@@ -38,7 +39,7 @@ private:
 	std::istream& input_;
 
 	void FillDB();
-	void AddBuses(std::vector<json::Node*>& buses);
-	svg::Color SetColor(json::Node& color);
-	std::vector<svg::Color> SetVectorColor(json::Array& color_array);
+	void AddBuses(std::vector<const json::Node*>& buses);
+	svg::Color SetColor(const json::Node& color);
+	std::vector<svg::Color> SetVectorColor(const json::Array& color_array);
 };

@@ -16,7 +16,7 @@ using namespace std::literals;
     // Сохраните объявления Dict и Array без изменения
     using Dict = std::map<std::string, Node>;
     using Array = std::vector<Node>;
-    using Value = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>;
+    //using Value = ;
     using Number = std::variant<int, double>;
 
     // Эта ошибка должна выбрасываться при ошибках парсинга JSON
@@ -35,28 +35,32 @@ using namespace std::literals;
     // Функцию следует использовать после считывания открывающего символа ":
     std::string LoadString(std::istream& input);
 
-    class Node : public Value {
+    class Node : public std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string> {
     public:
-        using Value::variant;
+        using variant::variant;
+        using Value = variant;
         Node(Value& v) : Value(std::move(v)) {}
         Node() : Value(nullptr) {}
+        Node(Value value) : variant(std::move(value)) {}
 
         bool IsNull() const;
         bool IsArray() const;
-        bool IsMap() const;
+        bool IsDict() const;
         bool IsBool() const;
         bool IsInt() const;
         bool IsDouble() const;
         bool IsPureDouble() const;
         bool IsString() const;
 
-        int& AsInt();
-        double AsDouble();
-        std::string& AsString();
-        bool& AsBool();
-        Array& AsArray();
-        Dict& AsMap();
-        const Value& GetValue() const; 
+        int AsInt() const;
+        double AsDouble() const;
+        const std::string& AsString() const;
+        bool AsBool() const;
+        const Array& AsArray() const;
+        const Dict& AsDict() const;
+        const Value& GetValue() const;
+        Value& GetValue();
+
     };
 
     bool operator==(const Node& ln, const Node& rn);
@@ -95,9 +99,8 @@ using namespace std::literals;
         void operator()(const Value& value) {
             out << value;
         }
-
     };
-    void PrintValue(Value v, std::ostream& out);
+    void PrintValue(Node::Value v, std::ostream& out);
 
     class Document {
     public:

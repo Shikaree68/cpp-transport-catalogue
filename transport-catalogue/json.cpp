@@ -245,7 +245,7 @@ namespace json {
         if (index() == 1) return true;
         return false;
     }
-    bool Node::IsMap() const {
+    bool Node::IsDict() const {
         if (index() == 2) return true;
         return false;
     }
@@ -272,13 +272,13 @@ namespace json {
         return false;
     }
 
-    int& Node::AsInt() {
+    int Node::AsInt() const {
         if (IsInt()) {
             return get<int>(*this);
         }
         throw std::logic_error("Not int or double");
     }
-    double Node::AsDouble() {
+    double Node::AsDouble() const {
         if (IsInt()) {
             return get<int>(*this);
         }
@@ -287,32 +287,33 @@ namespace json {
         }
         throw std::logic_error("Not int or double");
     }
-    std::string& Node::AsString() {
+    const std::string& Node::AsString() const {
         if (IsString()) {
             return get<std::string>(*this);
         }
         throw std::logic_error("Not string"s);
     }
-    bool& Node::AsBool() {
+    bool Node::AsBool() const {
         if (IsBool()) {
             return get<bool>(*this);
         }
         throw std::logic_error("Not bool");
     }
-    Array& Node::AsArray() {
+    const Array& Node::AsArray() const {
         if (IsArray()) {
             return get<Array>(*this);
         }
         throw std::logic_error("Not array"s);
     }
-    Dict& Node::AsMap() {
-        if (IsMap()) {
+    const Dict& Node::AsDict() const {
+        if (IsDict()) {
             return get<Dict>(*this);
         }
         throw std::logic_error("Not dict!!!"s);
     }
 
-    const Value& Node::GetValue() const { return *this; }
+    const Node::Value& Node::GetValue() const { return *this; }
+    Node::Value& Node::GetValue() { return *this; }
 
     bool operator==(const Node& ln, const Node& rn)
     {
@@ -402,7 +403,7 @@ namespace json {
         out << "null"sv;
     }
 
-    void PrintValue(Value v, std::ostream& out){
+    void PrintValue(Node::Value v, std::ostream& out){
         std::visit(VisitPrinter{ out }, v);
     }
 

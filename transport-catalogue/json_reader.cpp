@@ -11,21 +11,21 @@ void PrintJSON(const json::Node& node, std::ostream& out) {
 
 JSONFacade::JSONFacade(TC::TransportCatalogue& db, std::istream& input) 
     : db_(db), node_(json::Load(input).GetRoot()), input_(input) {
-    if (node_.IsMap()) {
+    if (node_.IsDict()) {
         FillDB();
     }
 }
 
 void JSONFacade::FillDB() {
     std::vector<std::pair<std::pair<std::string, std::string>, int>> parced_distances; //контейнер для последующего добавления дистаний
-    std::vector<json::Node*> bus_node_ptr; //контейнер для последующей обработки маршрутов
-    json::Array& json_file{ node_.AsMap().at("base_requests").AsArray() }; //Нужно создать хранилище для всех дальнейших обработок
-    for (json::Node& data : json_file) {
-        json::Dict& stop_info{ data.AsMap() };
+    std::vector<const json::Node*> bus_node_ptr; //контейнер для последующей обработки маршрутов
+    const json::Array& json_file{ node_.AsDict().at("base_requests").AsArray() }; //Нужно создать хранилище для всех дальнейших обработок
+    for (const json::Node& data : json_file) {
+        const json::Dict& stop_info{ data.AsDict() };
         if (stop_info.at("type"s).AsString() == "Stop"sv) {
             const std::string& stop_name{ stop_info.at("name"s).AsString() };
             //возможно нужна проверка на отсутстиве расстояний!
-            for (auto& [to_stop, distance] : stop_info.at("road_distances"s).AsMap()) {
+            for (auto& [to_stop, distance] : stop_info.at("road_distances"s).AsDict()) {
                 parced_distances.emplace_back(std::make_pair(std::make_pair(stop_name, to_stop), distance.AsInt())); //добавляем пару остановок и дистанцию между ними
             }
             db_.AddStop({ stop_name, { stop_info.at("latitude"s).AsDouble(), stop_info.at("longitude"s).AsDouble() } });
@@ -42,19 +42,19 @@ void JSONFacade::FillDB() {
     AddBuses(bus_node_ptr);
 }
 
-void JSONFacade::AddBuses(std::vector<json::Node*>& buses) {
-    for (json::Node* bus_node_dict : buses) {
-        json::Dict& bus_info{ bus_node_dict->AsMap() };
+void JSONFacade::AddBuses(std::vector<const json::Node*>& buses) {
+    for (const json::Node* bus_node_dict : buses) {
+        const json::Dict& bus_info{ bus_node_dict->AsDict() };
 
         std::vector<const TC::detail::Stop*> bus_stops;
-        for (json::Node& bus_stop : bus_info.at("stops").AsArray()) {
+        for (const json::Node& bus_stop : bus_info.at("stops").AsArray()) {
             bus_stops.push_back(db_.FindStop(bus_stop.AsString()));
         }
         db_.AddBus({ bus_info.at("name"s).AsString(), bus_stops, bus_info.at("is_roundtrip"s).AsBool() });
     }
 }
 
-svg::Color JSONFacade::SetColor(json::Node& color) {
+svg::Color JSONFacade::SetColor(const json::Node& color) {
 
     if (color.IsArray()) {
         //rgba
@@ -82,17 +82,17 @@ svg::Color JSONFacade::SetColor(json::Node& color) {
     
 }
 
-std::vector<svg::Color> JSONFacade::SetVectorColor(json::Array& color_array) {
+std::vector<svg::Color> JSONFacade::SetVectorColor(const json::Array& color_array) {
     std::vector<svg::Color> v_color;
     v_color.reserve(color_array.size());
-    for (json::Node& color : color_array) {
+    for (const json::Node& color : color_array) {
         v_color.push_back(SetColor(color));
     }
     return v_color;
 }
 
 renderer::RenderSettings JSONFacade::GetRenderSettings() {
-    json::Dict& data{ node_.AsMap().at("render_settings"s).AsMap() };
+    const json::Dict& data{ node_.AsDict().at("render_settings"s).AsDict() };
 
     return renderer::RenderSettings{
          std::move(data.at("width"s).AsDouble())
@@ -116,10 +116,10 @@ renderer::RenderSettings JSONFacade::GetRenderSettings() {
 void JSONFacade::HandleRequests(std::ostream& output) {
     json::Array final_array{};
 
-    for (json::Node& data : node_.AsMap().at("stat_requests"s).AsArray()) {
-        json::Dict& request_info{ data.AsMap() };
+    for (const json::Node& data : node_.AsDict().at("stat_requests"s).AsArray()) {
+        const json::Dict& request_info{ data.AsDict() };
         if (request_info.at("type"s).AsString() == "Stop"s) {
-            std::string& name{ request_info.at("name"s).AsString() };
+            const std::string& name{ request_info.at("name"s).AsString() };
             if (db_.FindStop(name)) { // нужно вызывать через request_handler?
                 auto* buses{ db_.GetBusesByStop(name) };                
                 std::vector<std::string> bus_names;
@@ -129,51 +129,96 @@ void JSONFacade::HandleRequests(std::ostream& output) {
                         bus_names.push_back(bus->name);
                     }
                 }
-                json::Node stop_node{
-                    json::Dict {{"buses"s, json::Array{bus_names.begin(), bus_names.end()} }
-                               ,{"request_id"s, request_info.at("id"s) }
-                    }
+                json::Node stop_node {
+                    json::Builder{}
+                        .StartDict()
+                            .Key("buses"s).Value(json::Array{ bus_names.begin(), bus_names.end() })
+                            .Key("request_id"s).Value(request_info.at("id"s))
+                        .EndDict()
+                    .Build()
                 };
+
+
+                //json::Node stop_node{
+                //    json::Dict {{"buses"s, json::Array{bus_names.begin(), bus_names.end()} }
+                //               ,{"request_id"s, request_info.at("id"s) }
+                //    }
+                //};
                 final_array.push_back(stop_node);                
             }
             else {
-                json::Node bus_node{
-                  json::Dict {{"request_id"s, request_info.at("id"s) }
-                             ,{"error_message"s, "not found"s }
-                  }
+                json::Node bus_node {
+                    json::Builder{}
+                        .StartDict()
+                            .Key("request_id"s).Value(request_info.at("id"s))
+                            .Key("error_message"s).Value("not found"s)
+                        .EndDict()
+                    .Build()
                 };
+                //json::Node bus_node{
+                //  json::Dict {{"request_id"s, request_info.at("id"s) }
+                //             ,{"error_message"s, "not found"s }
+                //  }
+                //};
                 final_array.push_back(std::move(bus_node));
             }
         }
         else if(request_info.at("type"s).AsString() == "Bus"s){
             const TC::detail::Bus* bus{ db_.FindBus(request_info.at("name"s).AsString()) };
             if (bus) {
-                json::Node bus_node {                  
-                    json::Dict {{"curvature"s        , bus->statistic.curveture }
-                               ,{"request_id"s       , request_info.at("id"s) }
-                               ,{"route_length"s     , static_cast<int>(bus->statistic.actual_distance) }
-                               ,{"stop_count"s       , bus->statistic.total_stops }
-                               ,{"unique_stop_count"s, bus->statistic.unique_stops }
-                    }
+                json::Node bus_node {
+                    json::Builder{}
+                        .StartDict()
+                            .Key("curvature"s).Value(bus->statistic.curveture)
+                            .Key("request_id"s).Value(request_info.at("id"s))
+                            .Key("route_length"s).Value(static_cast<int>(bus->statistic.actual_distance))
+                            .Key("stop_count"s).Value(bus->statistic.total_stops)
+                            .Key("unique_stop_count"s).Value(bus->statistic.unique_stops)
+                        .EndDict()
+                    .Build()
                 };
+                //json::Node bus_node {                  
+                //    json::Dict {{"curvature"s        , bus->statistic.curveture }
+                //               ,{"request_id"s       , request_info.at("id"s) }
+                //               ,{"route_length"s     , static_cast<int>(bus->statistic.actual_distance) }
+                //               ,{"stop_count"s       , bus->statistic.total_stops }
+                //               ,{"unique_stop_count"s, bus->statistic.unique_stops }
+                //    }
+                //};
                 final_array.push_back(std::move(bus_node));
 
             }
             else {
-                json::Node bus_node{
-                    json::Dict {{"request_id"s   , request_info.at("id"s) }
-                               ,{"error_message"s, "not found"s }}                    
+                json::Node bus_node {
+                    json::Builder{}
+                        .StartDict()
+                            .Key("request_id"s).Value(request_info.at("id"s))
+                            .Key("error_message"s).Value("not found"s)
+                        .EndDict()
+                    .Build()
                 };
+                //json::Node bus_node{
+                //    json::Dict {{"request_id"s   , request_info.at("id"s) }
+                //               ,{"error_message"s, "not found"s }}                    
+                //};
                 final_array.push_back(std::move(bus_node));
             }
         }
         else {
             std::stringstream map_rended;
             renderer::MapRenderer(map_rended, GetRenderSettings(), db_.GetAllBusesSorted());
-            json::Node map_node{
+            json::Node map_node {
+                json::Builder{}
+                    .StartDict()
+                        .Key("map"s).Value(map_rended.str())
+                        .Key("request_id"s).Value(request_info.at("id"s))
+                    .EndDict()
+                .Build()
+            };
+            /*json::Node map_node{
                 json::Dict{{"map"s, map_rended.str() }
                           ,{"request_id"s, request_info.at("id"s)}}
-            };
+            }*/;
             final_array.push_back(std::move(map_node));
         }
     }

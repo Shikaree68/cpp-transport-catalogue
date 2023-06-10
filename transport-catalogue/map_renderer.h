@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <set>
 #include <deque>
+#include <map>
 
 namespace renderer {
     inline constexpr double EPSILON = 1e-6;
