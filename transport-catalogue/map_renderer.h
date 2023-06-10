@@ -3,6 +3,7 @@
 #include "geo.h"
 #include "svg.h"
 #include "domain.h"
+#include "map"
 
 #include <algorithm>
 #include <set>
