@@ -2,7 +2,7 @@
 #include <memory>
 using namespace std::string_literals;
 namespace json {
-DictValueContext Builder::Key(std::string key) {
+	Builder::DictValueContext Builder::Key(std::string key) {
 	if (!nodes_stack_.empty() && nodes_stack_.back()->IsDict() && !key_set) {
 		dict_key_ = std::move(key);
 		key_set = true;
@@ -13,7 +13,7 @@ DictValueContext Builder::Key(std::string key) {
 	return *this;
 }
 
-BaseContext Builder::Value(Node::Value value) {
+Builder::BaseContext Builder::Value(Node::Value value) {
 	//если стэк пуст то принимаем все содержимое?
 	if (nodes_stack_.empty() && !in_use) {
 		root_ = std::move(value);
@@ -32,47 +32,36 @@ BaseContext Builder::Value(Node::Value value) {
 	return BaseContext(*this);
 }
 
-DictItemContext Builder::StartDict() {
+Builder::DictItemContext Builder::StartDict() {
+	StartContainer(Dict());
+	return  *this;
+}
+
+Builder::ArrayItemContext Builder::StartArray() {
+	StartContainer(Array());
+	return *this;
+}
+template <class T>
+void Builder::StartContainer(T) {
+	
 	if (nodes_stack_.empty() && !in_use) {
-		root_ = Dict();
+		root_ = T();
 		nodes_stack_.push_back(&root_);
 		in_use = true;
 	}
 	else if (!nodes_stack_.empty() && nodes_stack_.back()->IsArray()) {
-		const_cast<Array&>(nodes_stack_.back()->AsArray()).emplace_back(Dict());
+		const_cast<Array&>(nodes_stack_.back()->AsArray()).emplace_back(T());
 		nodes_stack_.push_back(&const_cast<Node&>(nodes_stack_.back()->AsArray().back()));
 	}
-	else if (!nodes_stack_.empty() && nodes_stack_.back()->IsDict() && key_set) {
+	else if (!nodes_stack_.empty() && key_set && nodes_stack_.back()->IsDict()) {
 		//добавляем в словарь пару ключ - значение
-		const_cast<Dict&>(nodes_stack_.back()->AsDict()).emplace(dict_key_, Dict());
-		nodes_stack_.push_back(&const_cast<Node&>(nodes_stack_.back()->AsDict().at(std::move(dict_key_))));
+		const_cast<Dict&>(nodes_stack_.back()->AsDict()).emplace(dict_key_, T());
+		nodes_stack_.push_back(&const_cast<Node&>(nodes_stack_.back()->AsDict().at(dict_key_)));
 		key_set = false;
 	}
 	else {
 		throw std::logic_error("previos is not correct"s);
 	}
-	return  *this;
-}
-
-ArrayItemContext Builder::StartArray() {
-	if (nodes_stack_.empty() && !in_use) {
-		root_ = Array();
-		nodes_stack_.push_back(&root_);
-		in_use = true;
-	}
-	else if (!nodes_stack_.empty() && nodes_stack_.back()->IsArray()) {
-		const_cast<Array&>(nodes_stack_.back()->AsArray()).emplace_back(Array());
-		nodes_stack_.push_back(&const_cast<Node&>(nodes_stack_.back()->AsArray().back()));
-	} else if (!nodes_stack_.empty() && key_set && nodes_stack_.back()->IsDict()) {
-		//добавляем в словарь пару ключ - значение
-		const_cast<Dict&>(nodes_stack_.back()->AsDict()).emplace(dict_key_, Array());
-		nodes_stack_.push_back(&const_cast<Node&>(nodes_stack_.back()->AsDict().at(dict_key_)));
-		//dict_key_ = ""s;
-		key_set = false;
-	} else {
-		throw std::logic_error("previos is not correct"s);
-	}
-	return *this;
 }
 
 Builder& Builder::EndDict() {
@@ -97,34 +86,34 @@ Node Builder::Build() {
 	}
 	return root_;
 }
-DictValueContext BaseContext::Key(std::string key) {
+Builder::DictValueContext Builder::BaseContext::Key(std::string key) {
 	return builder_.Key(key);
 }
-BaseContext BaseContext::Value(Node::Value value) {
+Builder::BaseContext Builder::BaseContext::Value(Node::Value value) {
 	return builder_.Value(value);
 }
-DictItemContext BaseContext::StartDict() {
+Builder::DictItemContext Builder::BaseContext::StartDict() {
 	return builder_.StartDict();
 }
-ArrayItemContext BaseContext::StartArray() {
+Builder::ArrayItemContext Builder::BaseContext::StartArray() {
 	return builder_.StartArray();
 }
-Builder& BaseContext::EndDict() {
+Builder& Builder::BaseContext::EndDict() {
 	return builder_.EndDict();
 }
-Builder& BaseContext::EndArray() {
+Builder& Builder::BaseContext::EndArray() {
 	return builder_.EndArray();
 }
-Node BaseContext::Build() {
+Node Builder::BaseContext::Build() {
 	return builder_.Build();
 }
-DictItemContext DictValueContext::Value(Node::Value value){
+Builder::DictItemContext Builder::DictValueContext::Value(Node::Value value){
 	BaseContext temp{ builder_.Value(value) };
 	return static_cast<DictItemContext&>(temp);
 }
-ArrayItemContext ArrayItemContext::Value(Node::Value value) {
+Builder::ArrayItemContext Builder::ArrayItemContext::Value(Node::Value value) {
 	BaseContext temp{ builder_.Value(value) };
 	return static_cast<ArrayItemContext&>(temp);
-}
 
+}
 }
