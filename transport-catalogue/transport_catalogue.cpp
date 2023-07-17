@@ -10,6 +10,7 @@ namespace TC {
 		stopname_to_stop_[stops_.back().name] = &stops_.back();
 		stopname_to_buses_[stops_.back().name];
 	}
+
 	void TransportCatalogue::AddBus(const detail::Bus&& bus) {
 		buses_.emplace_back(bus);
 		buses_.back().statistic.total_stops = CountBusTotalStops(&buses_.back());
@@ -104,6 +105,12 @@ namespace TC {
 		stops_distance_.insert({ pair_stops, distance_value });
 	}
 
+	uint32_t TransportCatalogue::FindTwoStopsDistance(std::pair<const detail::Stop*, const detail::Stop*> pair_stops) const	{
+		return stops_distance_.find({ pair_stops.first, pair_stops.second }) != stops_distance_.end()
+			? stops_distance_.at({ pair_stops.first, pair_stops.second })
+			: stops_distance_.at({ pair_stops.second, pair_stops.first });
+	}
+
 	int TransportCatalogue::CountBusTotalStops(const detail::Bus* bus) const {
 		int result;
 		if (bus->is_circle) {
@@ -114,6 +121,7 @@ namespace TC {
 		}
 		return result;
 	}
+
 	int TransportCatalogue::CountBusUniqueStops(const detail::Bus* bus) const {
 		std::vector<const detail::Stop*> stops;
 		auto lambda = [&stops](const detail::Stop* stop) {
@@ -127,11 +135,11 @@ namespace TC {
 
 	std::pair<uint64_t, double> TransportCatalogue::ComputeRouteDistance(const detail::Bus* bus) const {
 
-		uint64_t actual_distance{ ComputeActualDistance(bus) };
-		double curveture{ static_cast<double>(actual_distance) / ComputeGeoDistance(bus) };
+		uint64_t actual_distance{ ComputeBusActualDistance(bus) };
+		double curveture{ static_cast<double>(actual_distance) / ComputeBusGeoDistance(bus) };
 		return { actual_distance, curveture };
 	}
-	double TransportCatalogue::ComputeGeoDistance(const detail::Bus* bus) const {
+	double TransportCatalogue::ComputeBusGeoDistance(const detail::Bus* bus) const {
 		double geo_distance{};
 		for (size_t i{ 1 }; i < bus->stops.size(); ++i) {
 			geo_distance += ComputeDistance(bus->stops[i - 1]->coordinates, bus->stops[i]->coordinates);
@@ -141,18 +149,13 @@ namespace TC {
 		}
 		return geo_distance;
 	}
-	uint64_t TransportCatalogue::ComputeActualDistance(const detail::Bus* bus) const {
+	uint64_t TransportCatalogue::ComputeBusActualDistance(const detail::Bus* bus) const {
 		uint64_t actual_distance{};
 		for (size_t i{ 1 }; i < bus->stops.size(); ++i) {
-			std::pair<const TC::detail::Stop*, const TC::detail::Stop*> point{ bus->stops[i - 1], bus->stops[i] };
-			actual_distance += stops_distance_.find({ point.first, point.second }) != stops_distance_.end()
-				? stops_distance_.at({ point.first, point.second })
-				: stops_distance_.at({ point.second, point.first });
+			actual_distance += FindTwoStopsDistance({ bus->stops[i - 1], bus->stops[i] });
 
 			if (!bus->is_circle) {
-				actual_distance += stops_distance_.find({ point.second, point.first }) != stops_distance_.end()
-					? stops_distance_.at({ point.second, point.first })
-					: stops_distance_.at({ point.first, point.second });
+				actual_distance += FindTwoStopsDistance({ bus->stops[i], bus->stops[i - 1] });
 			}
 		}
 		return actual_distance;

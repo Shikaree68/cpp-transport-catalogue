@@ -425,8 +425,8 @@ namespace json {
     Document Load(istream& input) {
         return Document{ LoadNode(input) };
     }
-    void Print(const Document& doc, std::ostream& output) {
-        PrintNode(doc.GetRoot(), output);
+    void Print(const Document& doc, std::ostream& out) {
+        PrintNode(doc.GetRoot(), out);
     }
 
 }  // namespace json

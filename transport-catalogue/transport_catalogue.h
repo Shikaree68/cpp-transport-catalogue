@@ -19,6 +19,7 @@ namespace TC {
 
 		const detail::Stop* FindStop(const std::string_view stop) const;
 		const detail::Bus* FindBus(const std::string_view bus_name) const;
+
 		const std::deque<detail::Stop>& GetAllStops() const;
 		const std::deque<detail::Bus>& GetAllBuses() const;
 		std::set<const detail::Bus*, detail::BusComparator> GetAllBusesSorted() const;
@@ -29,6 +30,7 @@ namespace TC {
 		const std::set<detail::Bus*, detail::BusComparator>* GetBusesByStop(const std::string_view stop_name) const;
 
 		void SetDistance(std::pair<const detail::Stop*, const detail::Stop*> pair_stops, int distance_value);
+		uint32_t FindTwoStopsDistance(std::pair<const detail::Stop*, const detail::Stop*> pair_stops) const;
 
 	private:
 		std::deque<detail::Stop> stops_;
@@ -36,14 +38,13 @@ namespace TC {
 		std::deque<detail::Bus> buses_;
 		std::map<std::string_view, detail::Bus*> busname_to_bus_;
 		std::unordered_map <std::string_view, std::set<detail::Bus*, detail::BusComparator>> stopname_to_buses_;
-		std::unordered_map <std::pair<const detail::Stop*, const detail::Stop*>, int, detail::StopsPtrHash> stops_distance_;
-
+		std::unordered_map <std::pair<const detail::Stop*, const detail::Stop*>, uint32_t, detail::StopsPtrHash> stops_distance_;
 		int CountBusTotalStops(const detail::Bus* bus) const;
 		int CountBusUniqueStops(const detail::Bus* bus) const;
 
 		std::pair<uint64_t, double> ComputeRouteDistance(const detail::Bus* bus) const;
-		double ComputeGeoDistance(const detail::Bus* bus) const;
-		uint64_t ComputeActualDistance(const detail::Bus* bus) const;
+		double ComputeBusGeoDistance(const detail::Bus* bus) const;
+		uint64_t ComputeBusActualDistance(const detail::Bus* bus) const;
 
 		void FillStopnameToBuses(detail::Bus* bus);
 	};

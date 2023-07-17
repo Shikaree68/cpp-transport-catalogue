@@ -68,25 +68,29 @@ using namespace std::literals;
 
     void PrintNode(const Node& node, std::ostream& out);
 
-    // Контекст вывода, хранит ссылку на поток вывода и текущий отсуп
-    /*
-    struct PrintContext {
-        std::ostream& out;
-        int indent_step = 4;
-        int indent = 0;
+    //// Контекст вывода, хранит ссылку на поток вывода и текущий отсуп
+    //struct PrintContext {
+    //    std::ostream& out;
+    //    int indent_step = 4;
+    //    int indent = 0;
 
-        void PrintIndent() const {
-            for (int i = 0; i < indent; ++i) {
-                out.put(' ');
-            }
-        }
+    //    void PrintIndent() const {
+    //        for (int i = 0; i < indent; ++i) {
+    //            out.put(' ');
+    //        }
+    //    }
+    //    // Возвращает новый контекст вывода с увеличенным смещением
+    //    PrintContext Indented() const {
+    //        return { out, indent_step, indent_step + indent };
+    //    }
 
-        // Возвращает новый контекст вывода с увеличенным смещением
-        PrintContext Indented() const {
-            return { out, indent_step, indent_step + indent };
-        }
-    };
-    */
+
+    //    PrintContext& operator=(const PrintContext& other) {
+    //        indent = other.indent;
+    //        return *this;
+    //    }
+    //};
+
 
     struct VisitPrinter {
         std::ostream& out;
