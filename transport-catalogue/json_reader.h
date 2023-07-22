@@ -39,7 +39,7 @@ private:
 	std::vector<svg::Color> SetVectorColor(const json::Array& color_array);
 	void HandleRequestStop(const json::Dict& request_info, json::Array& final_array);
 	void HandleRequestBus(const json::Dict& request_info, json::Array& final_array);
-	void HandleRequestRoute(const router::TransportRouter& tr, const graph::Router<double>& router, const json::Dict& request_info, json::Array& final_array);
+	void HandleRequestRoute(router::TransportRouter& tr, const json::Dict& request_info, json::Array& final_array);
 	void HandleRequestMap(const json::Dict& request_info, json::Array& final_array);
 	void HandleNotFound(const json::Dict& request_info, json::Array& final_array);
 	router::RoutingSettings GetRoutingSettings() const;

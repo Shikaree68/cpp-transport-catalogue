@@ -5,6 +5,7 @@
 #include "geo.h"
 #include <deque>
 #include <unordered_map>
+#include <memory>
 
 namespace router {
 	struct EdgeInfo {
@@ -16,6 +17,7 @@ namespace router {
 
 		EdgeInfo(const std::string_view& name, int span_count, double weight)
 			: name(name), span_count(span_count), weight(weight) {}
+
 		EdgeInfo(const EdgeInfo& other) {
 			*this = other;
 		}
@@ -36,18 +38,13 @@ namespace router {
 	public:
 		TransportRouter(TC::TransportCatalogue& tc, RoutingSettings routing_settings);
 		TransportRouter() = delete;
-
-		const graph::DirectedWeightedGraph<double>& GetGraph() {
-			return dwg_;
-		}
-		const std::vector<EdgeInfo>& GetEdgesInfo() const {
-			return route_;
-		}
+		std::optional<std::vector<const EdgeInfo*>> GetEdgesInfo(size_t from, size_t to);
 
 	private:
 		TC::TransportCatalogue& tc_;
 		RoutingSettings routing_settings_;
 		graph::DirectedWeightedGraph<double> dwg_;
+		std::unique_ptr<graph::Router<double>> kitt_;
 		std::vector<EdgeInfo> route_;
 
 		using stops_time = std::unordered_map<std::pair<const TC::detail::Stop*, const TC::detail::Stop*>,
@@ -57,7 +54,6 @@ namespace router {
 		void AddBusesToGraph();
 		template <typename ItV>
 		void AddBus(ItV begin, ItV end, std::string_view bus_name, stops_time& stops_time_var);
-
 	};
 
 	template <typename ItV>

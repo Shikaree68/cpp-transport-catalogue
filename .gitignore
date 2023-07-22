@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+/transport-catalogue/TC_final.vcxproj
+/transport-catalogue/.vs
+/transport-catalogue/x64/Debug
+/.vs
+/transport-catalogue/TC_final.vcxproj.filters
+*.txt

@@ -102,7 +102,6 @@ std::vector<svg::Color> JSONFacade::SetVectorColor(const json::Array& color_arra
 void JSONFacade::HandleRequests(std::ostream& output) {
     json::Array final_array{};
     router::TransportRouter tr(db_, GetRoutingSettings());
-    graph::Router<double> router(tr.GetGraph());
     for (const json::Node& data : node_.AsDict().at("stat_requests"s).AsArray()) {
         const json::Dict& request_info{ data.AsDict() };
         if (request_info.at("type"s).AsString() == "Stop"s) {
@@ -115,7 +114,7 @@ void JSONFacade::HandleRequests(std::ostream& output) {
             HandleRequestMap(request_info, final_array);
         }
         else if (request_info.at("type"s).AsString() == "Route"s) {
-            HandleRequestRoute(tr, router, request_info, final_array);
+            HandleRequestRoute(tr, request_info, final_array);
         }
     }
     json::PrintNode(json::Node(std::move(final_array)), output);
@@ -137,8 +136,8 @@ void JSONFacade::HandleRequestStop(const json::Dict& request_info, json::Array& 
             .StartDict()
                 .Key("buses"s).Value(json::Array{ bus_names.begin(), bus_names.end() })
                 .Key("request_id"s).Value(request_info.at("id"s))
-                .EndDict()
-                .Build()
+            .EndDict()
+            .Build()
         };
 
         final_array.push_back(stop_node);
@@ -159,8 +158,8 @@ void JSONFacade::HandleRequestBus(const json::Dict& request_info, json::Array& f
                 .Key("route_length"s).Value(static_cast<int>(bus->statistic.actual_distance))
                 .Key("stop_count"s).Value(bus->statistic.total_stops)
                 .Key("unique_stop_count"s).Value(bus->statistic.unique_stops)
-                .EndDict()
-                .Build()
+            .EndDict()
+            .Build()
         };
         final_array.push_back(std::move(bus_node));
     }
@@ -169,27 +168,27 @@ void JSONFacade::HandleRequestBus(const json::Dict& request_info, json::Array& f
     }
 }
 
-void JSONFacade::HandleRequestRoute(const router::TransportRouter& tr, const graph::Router<double>& router, const json::Dict& request_info, json::Array& final_array){
+void JSONFacade::HandleRequestRoute(router::TransportRouter& tr, const json::Dict& request_info, json::Array& final_array){
     const TC::detail::Stop* from{db_.FindStop(request_info.at("from"s).AsString())};
     const TC::detail::Stop* to{db_.FindStop(request_info.at("to"s).AsString())};
     if (from && to) {
-        json::Array items;
-        auto route = router.BuildRoute(from->id , to->id);
+        auto route{ std::move(tr.GetEdgesInfo(from->id, to->id)) };
         if (!route.has_value()) {
             HandleNotFound(request_info, final_array);
         }
         else {
-            const std::vector<router::EdgeInfo>& edge_info{tr.GetEdgesInfo()};
-
-            for (graph::EdgeId edge_id : route.value().edges) {
-                const router::EdgeInfo& edge {edge_info.at(edge_id)};
-                if (edge.span_count == 0) {
+            double total_weight{};
+            json::Array items;
+            items.reserve(route.value().size());
+            for (const router::EdgeInfo* edge : route.value()) {
+                total_weight += edge->weight;
+                if (edge->span_count == 0) {
                     items.push_back(json::Node{
                         json::Builder{}
                         .StartDict()
                             .Key("type"s).Value("Wait"s)
-                            .Key("stop_name"s).Value(std::string(edge.name))
-                            .Key("time"s).Value(edge.weight)
+                            .Key("stop_name"s).Value(std::string(edge->name))
+                            .Key("time"s).Value(edge->weight)
                         .EndDict()
                         .Build()
                     });
@@ -199,28 +198,26 @@ void JSONFacade::HandleRequestRoute(const router::TransportRouter& tr, const gra
                         json::Builder{}
                         .StartDict()
                             .Key("type"s).Value("Bus"s)
-                            .Key("bus"s).Value(std::string(edge.name))
-                            .Key("span_count"s).Value(edge.span_count)
-                            .Key("time"s).Value(edge.weight)
-                            .EndDict()
-                            .Build()
-                    });                    
+                            .Key("bus"s).Value(std::string(edge->name))
+                            .Key("span_count"s).Value(edge->span_count)
+                            .Key("time"s).Value(edge->weight)
+                        .EndDict()
+                        .Build()
+                    });
                 }
             }
             json::Node route_node {
                 json::Builder{}
                 .StartDict()
                     .Key("request_id"s).Value(request_info.at("id"s))
-                    .Key("total_time"s).Value(route.value().weight)
-                    .Key("items"s).Value(items)
-                    .EndDict()
-                    .Build()
+                    .Key("total_time"s).Value(std::move(total_weight))
+                    .Key("items"s).Value(std::move(items))
+                .EndDict()
+                .Build()
 
             };
-            final_array.push_back(std::move(route_node));   
+            final_array.push_back(std::move(route_node));
         }
-
-        
     }
     else {
         HandleNotFound(request_info, final_array);
@@ -235,8 +232,8 @@ void JSONFacade::HandleRequestMap(const json::Dict& request_info, json::Array& f
         .StartDict()
             .Key("map"s).Value(map_rended.str())
             .Key("request_id"s).Value(request_info.at("id"s))
-            .EndDict()
-            .Build()
+        .EndDict()
+        .Build()
     };
     final_array.push_back(std::move(map_node));
 }
@@ -247,8 +244,8 @@ void JSONFacade::HandleNotFound(const json::Dict& request_info, json::Array& fin
         .StartDict()
             .Key("request_id"s).Value(request_info.at("id"s))
             .Key("error_message"s).Value("not found"s)
-            .EndDict()
-            .Build()
+        .EndDict()
+        .Build()
     };
     final_array.push_back(std::move(route_node));
 }
