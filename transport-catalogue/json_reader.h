@@ -20,17 +20,25 @@ class JSONFacade {
 public:
 	JSONFacade() = delete;
 	explicit JSONFacade(TC::TransportCatalogue& db, std::istream& input = std::cin);
+	explicit JSONFacade(std::istream& input = std::cin);
 	//Отдаем настройки рендера
 	renderer::RenderSettings GetRenderSettings();
+	router::RoutingSettings GetRoutingSettings() const;
+	void SetRenderSettings(renderer::RenderSettings rs);
+	void SetRoutingSettings(router::RoutingSettings rs);
 	//Выводим все запросы
 	void HandleRequests(std::ostream& output = std::cout);
+	std::string GetSerializationPath();
+	void FillDB();
+
 
 private:
 	TC::TransportCatalogue& db_;
 	json::Node node_;
 	std::istream& input_;
+	renderer::RenderSettings render_settings_;
+	router::RoutingSettings routing_settings_;
 
-	void FillDB();
 	void FillStops(std::vector<const json::Node*>& bus_node_ptr,
 		std::vector<std::pair<std::pair<std::string, std::string>, int>>& parced_distances);
 	void FillBuses(const std::vector<const json::Node*>& buses,
@@ -42,5 +50,4 @@ private:
 	void HandleRequestRoute(router::TransportRouter& tr, const json::Dict& request_info, json::Array& final_array);
 	void HandleRequestMap(const json::Dict& request_info, json::Array& final_array);
 	void HandleNotFound(const json::Dict& request_info, json::Array& final_array);
-	router::RoutingSettings GetRoutingSettings() const;
 };

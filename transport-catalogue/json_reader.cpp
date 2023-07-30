@@ -8,11 +8,7 @@ void PrintJSON(const json::Node& node, std::ostream& out) {
 }
 
 JSONFacade::JSONFacade(TC::TransportCatalogue& db, std::istream& input) 
-    : db_(db), node_(json::Load(input).GetRoot()), input_(input) {
-    if (node_.IsDict()) {
-        FillDB();
-    }
-}
+    : db_(db), node_(json::Load(input).GetRoot()), input_(input) {}
 
 void JSONFacade::FillDB() {
     //контейнер для последующего добавления дистаний
@@ -101,7 +97,7 @@ std::vector<svg::Color> JSONFacade::SetVectorColor(const json::Array& color_arra
 
 void JSONFacade::HandleRequests(std::ostream& output) {
     json::Array final_array{};
-    router::TransportRouter tr(db_, GetRoutingSettings());
+    router::TransportRouter tr(db_, routing_settings_);
     for (const json::Node& data : node_.AsDict().at("stat_requests"s).AsArray()) {
         const json::Dict& request_info{ data.AsDict() };
         if (request_info.at("type"s).AsString() == "Stop"s) {
@@ -114,12 +110,15 @@ void JSONFacade::HandleRequests(std::ostream& output) {
             HandleRequestMap(request_info, final_array);
         }
         else if (request_info.at("type"s).AsString() == "Route"s) {
-            HandleRequestRoute(tr, request_info, final_array);
+           HandleRequestRoute(tr, request_info, final_array);
         }
     }
     json::PrintNode(json::Node(std::move(final_array)), output);
 }
 
+std::string JSONFacade::GetSerializationPath() {
+    return node_.AsDict().at("serialization_settings").AsDict().at("file"s).AsString();
+}
 void JSONFacade::HandleRequestStop(const json::Dict& request_info, json::Array& final_array) {
     const std::string& name{ request_info.at("name"s).AsString() };
     if (db_.FindStop(name)) {
@@ -226,7 +225,7 @@ void JSONFacade::HandleRequestRoute(router::TransportRouter& tr, const json::Dic
 
 void JSONFacade::HandleRequestMap(const json::Dict& request_info, json::Array& final_array) {
     std::stringstream map_rended;
-    renderer::MapRenderer(map_rended, GetRenderSettings(), db_.GetAllBusesSorted());
+    renderer::MapRenderer(map_rended, std::move(render_settings_), db_.GetAllBusesSorted());
     json::Node map_node {
         json::Builder{}
         .StartDict()
@@ -271,6 +270,15 @@ renderer::RenderSettings JSONFacade::GetRenderSettings() {
         ,{ SetVectorColor(data.at("color_palette"s).AsArray()) }
     };
     
+}
+
+void JSONFacade::SetRenderSettings(renderer::RenderSettings rs) {
+    render_settings_ = std::move(rs);
+}
+
+void JSONFacade::SetRoutingSettings(router::RoutingSettings rs)
+{
+    routing_settings_ = std::move(rs);
 }
 
 router::RoutingSettings JSONFacade::GetRoutingSettings() const {

@@ -23,6 +23,8 @@ namespace TC {
 		const std::deque<detail::Stop>& GetAllStops() const;
 		const std::deque<detail::Bus>& GetAllBuses() const;
 		std::set<const detail::Bus*, detail::BusComparator> GetAllBusesSorted() const;
+		const std::unordered_map <std::pair<const detail::Stop*, const detail::Stop*>
+			, uint32_t, detail::StopsPtrHash>& GetAllDistances() const;
 
 		std::ostream& GetBusInfo(std::ostream& out, const std::string_view bus_name) const;
 		std::ostream& GetStopInfo(std::ostream& out, const std::string_view stop_name) const;
@@ -34,11 +36,12 @@ namespace TC {
 
 	private:
 		std::deque<detail::Stop> stops_;
-		std::unordered_map <std::string_view, detail::Stop*> stopname_to_stop_;
 		std::deque<detail::Bus> buses_;
+		std::unordered_map <std::string_view, detail::Stop*> stopname_to_stop_;
 		std::map<std::string_view, detail::Bus*> busname_to_bus_;
 		std::unordered_map <std::string_view, std::set<detail::Bus*, detail::BusComparator>> stopname_to_buses_;
 		std::unordered_map <std::pair<const detail::Stop*, const detail::Stop*>, uint32_t, detail::StopsPtrHash> stops_distance_;
+
 		int CountBusTotalStops(const detail::Bus* bus) const;
 		int CountBusUniqueStops(const detail::Bus* bus) const;
 

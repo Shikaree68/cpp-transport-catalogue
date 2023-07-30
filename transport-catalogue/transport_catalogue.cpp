@@ -55,6 +55,11 @@ namespace TC {
 		return sorted_buses;
 	}
 
+	const std::unordered_map<std::pair<const detail::Stop*, const detail::Stop*>, uint32_t, detail::StopsPtrHash>& TransportCatalogue::GetAllDistances() const
+	{
+		return stops_distance_;
+	}
+
 	std::ostream& TransportCatalogue::GetBusInfo(std::ostream& out, const std::string_view bus_name) const {
 		const detail::Bus* bus_ptr = FindBus(bus_name);
 		out << "Bus "s << bus_name;
@@ -139,6 +144,7 @@ namespace TC {
 		double curveture{ static_cast<double>(actual_distance) / ComputeBusGeoDistance(bus) };
 		return { actual_distance, curveture };
 	}
+
 	double TransportCatalogue::ComputeBusGeoDistance(const detail::Bus* bus) const {
 		double geo_distance{};
 		for (size_t i{ 1 }; i < bus->stops.size(); ++i) {
