@@ -35,18 +35,22 @@ namespace proto {
 		}
 
 		SerializeRenderSettings(rs);
-		db_.set_bus_wait_time(route_settings.bus_wait_time);
-		db_.set_bus_velocity(route_settings.bus_velocity);
+		rs_.set_bus_wait_time(route_settings.bus_wait_time);
+		rs_.set_bus_velocity(route_settings.bus_velocity);
 	}
 
 	void Protobuf::Serialization(const std::filesystem::path& path) {
 		std::ofstream out_file(path, std::ios::binary);
 		db_.SerializeToOstream(&out_file);
+		mr_.SerializeToOstream(&out_file);
+		rs_.SerializeToOstream(&out_file);
 	}
 
 	void Protobuf::Deserialization(const std::filesystem::path& path) {
 		std::ifstream in_file(path, std::ios::binary);
 		db_.ParseFromIstream(&in_file);
+		mr_.ParseFromIstream(&in_file);
+		rs_.ParseFromIstream(&in_file);
 	}
 	void Protobuf::ParseCatalogue(TC::TransportCatalogue& tc) {
 		ParseStops(tc);
@@ -94,26 +98,25 @@ namespace proto {
 	renderer::RenderSettings Protobuf::ParseRenderSettings()
 	{
 		renderer::RenderSettings rs;
-		auto& settings{ db_.render_settings() };
-		rs.width = settings.width();
-		rs.height = settings.height();
-		rs.padding = settings.padding();
-		rs.line_width = settings.line_width();
-		rs.stop_radius = settings.stop_radius();
-		rs.bus_label_font_size = settings.bus_label_font_size();
-		rs.bus_label_offset = { settings.bus_label_offset().x(), settings.bus_label_offset().y() };
-		rs.stop_label_font_size = settings.stop_label_font_size();
-		rs.stop_label_offset = { settings.stop_label_offset().x(), settings.stop_label_offset().y() };
+		rs.width = mr_.width();
+		rs.height = mr_.height();
+		rs.padding = mr_.padding();
+		rs.line_width = mr_.line_width();
+		rs.stop_radius = mr_.stop_radius();
+		rs.bus_label_font_size = mr_.bus_label_font_size();
+		rs.bus_label_offset = { mr_.bus_label_offset().x(), mr_.bus_label_offset().y() };
+		rs.stop_label_font_size = mr_.stop_label_font_size();
+		rs.stop_label_offset = { mr_.stop_label_offset().x(), mr_.stop_label_offset().y() };
 		{
-			if (settings.underlayer_color().data_case() == 1) {
+			if (mr_.underlayer_color().data_case() == 1) {
 				rs.underlayer_color = std::monostate();
 			}
-			else if (settings.underlayer_color().data_case() == 2) {
-				rs.underlayer_color = settings.underlayer_color().name();
+			else if (mr_.underlayer_color().data_case() == 2) {
+				rs.underlayer_color = mr_.underlayer_color().name();
 			}
-			else if (settings.underlayer_color().data_case() == 3) {
-				auto color{ settings.underlayer_color().rgba() };
-				if (settings.underlayer_color().rgba().is_rgba()) {
+			else if (mr_.underlayer_color().data_case() == 3) {
+				auto color{ mr_.underlayer_color().rgba() };
+				if (mr_.underlayer_color().rgba().is_rgba()) {
 					rs.underlayer_color = svg::Rgba{ color.red(), color.green(), color.blue(), color.opacity() };
 				}
 				else {
@@ -122,9 +125,9 @@ namespace proto {
 			}
 
 		}
-		rs.underlayer_width = settings.underlayer_width();
-		rs.color_palette.reserve(settings.color_palette_size());
-		for (auto& color : settings.color_palette()) {
+		rs.underlayer_width = mr_.underlayer_width();
+		rs.color_palette.reserve(mr_.color_palette_size());
+		for (auto& color : mr_.color_palette()) {
 			if (color.data_case() == 1) {
 				rs.color_palette.push_back( std::monostate());
 			}
@@ -144,27 +147,25 @@ namespace proto {
 		return rs;
 
 	}
-	router::RoutingSettings Protobuf::ParseRoutingSettings()
-	{
-		return {db_.bus_wait_time(), db_.bus_velocity() };
+	router::RoutingSettings Protobuf::ParseRoutingSettings() {
+		return {rs_.bus_wait_time(), rs_.bus_velocity() };
 	}
 	void Protobuf::SerializeRenderSettings(renderer::RenderSettings rs) {
-		auto settings{ db_.mutable_render_settings() };
 
-		settings->set_width(rs.width);
-		settings->set_height(rs.height);
-		settings->set_padding(rs.padding);
-		settings->set_line_width(rs.line_width);
-		settings->set_stop_radius(rs.stop_radius);
-		settings->set_bus_label_font_size(rs.bus_label_font_size);
-		settings->mutable_bus_label_offset()->set_x(rs.bus_label_offset.x);
-		settings->mutable_bus_label_offset()->set_y(rs.bus_label_offset.y);
-		settings->set_stop_label_font_size(rs.stop_label_font_size);
-		settings->mutable_stop_label_offset()->set_x(rs.stop_label_offset.x);
-		settings->mutable_stop_label_offset()->set_y(rs.stop_label_offset.y);
+		mr_.set_width(rs.width);
+		mr_.set_height(rs.height);
+		mr_.set_padding(rs.padding);
+		mr_.set_line_width(rs.line_width);
+		mr_.set_stop_radius(rs.stop_radius);
+		mr_.set_bus_label_font_size(rs.bus_label_font_size);
+		mr_.mutable_bus_label_offset()->set_x(rs.bus_label_offset.x);
+		mr_.mutable_bus_label_offset()->set_y(rs.bus_label_offset.y);
+		mr_.set_stop_label_font_size(rs.stop_label_font_size);
+		mr_.mutable_stop_label_offset()->set_x(rs.stop_label_offset.x);
+		mr_.mutable_stop_label_offset()->set_y(rs.stop_label_offset.y);
 
 		if (std::holds_alternative<std::string>(rs.underlayer_color)) {
-			settings->mutable_underlayer_color()->set_name(std::get<std::string>(rs.underlayer_color));
+			mr_.mutable_underlayer_color()->set_name(std::get<std::string>(rs.underlayer_color));
 		}
 		else if (std::holds_alternative<svg::Rgb>(rs.underlayer_color) ) {
 			proto_render::Rgba p_color;
@@ -174,7 +175,7 @@ namespace proto {
 			p_color.set_blue(rs_color.blue);
 			p_color.set_is_rgba(false);
 			
-			*settings->mutable_underlayer_color()->mutable_rgba() = p_color;
+			*mr_.mutable_underlayer_color()->mutable_rgba() = p_color;
 		}
 		else if (std::holds_alternative<svg::Rgba>(rs.underlayer_color)) {
 			proto_render::Rgba p_color;
@@ -185,16 +186,16 @@ namespace proto {
 			p_color.set_opacity(rs_color.opacity);
 			p_color.set_is_rgba(true);
 
-			*settings->mutable_underlayer_color()->mutable_rgba() = p_color;
+			*mr_.mutable_underlayer_color()->mutable_rgba() = p_color;
 		}
 		else {
-			settings->mutable_underlayer_color()->set_is_none(true);
+			mr_.mutable_underlayer_color()->set_is_none(true);
 		}
 
-		settings->set_underlayer_width(rs.underlayer_width);
+		mr_.set_underlayer_width(rs.underlayer_width);
 
 		for (auto& rs_color : rs.color_palette) {
-			auto add_collor{ settings->add_color_palette() };
+			auto add_collor{ mr_.add_color_palette() };
 			if (std::holds_alternative<std::string>(rs_color)) {
 				add_collor->set_name(std::get<std::string>(rs_color));
 			}

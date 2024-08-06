@@ -27,11 +27,14 @@ message Stop {
     uint32 id = 3;
 }
 
+message RoutingSettings {
+    double bus_wait_time = 1;
+    double bus_velocity = 2;
+}
+
 message TransportCatalogue {
     repeated Bus buses = 1;
     repeated Stop stops = 2;
     repeated Distance stops_distance = 3;
-    proto_render.MapRenderer render_settings = 4;
-    double bus_wait_time = 5;
-    double bus_velocity = 6;
 }
+

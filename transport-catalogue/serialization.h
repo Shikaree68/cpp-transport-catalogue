@@ -22,6 +22,8 @@ namespace proto {
 		router::RoutingSettings ParseRoutingSettings();
 	private:
 		TC_proto::TransportCatalogue db_;
+		proto_render::MapRenderer mr_;
+		TC_proto::RoutingSettings rs_;
 		std::map<const uint64_t, const TC::detail::Stop*> id_to_stop_;
 
 		void ParseStops(TC::TransportCatalogue& tc);

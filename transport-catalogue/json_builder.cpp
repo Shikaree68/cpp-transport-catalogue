@@ -14,7 +14,7 @@ namespace json {
 }
 
 Builder::BaseContext Builder::Value(Node::Value value) {
-	//если стэк пуст то принимаем все содержимое?
+	//РµСЃР»Рё СЃС‚СЌРє РїСѓСЃС‚ С‚Рѕ РїСЂРёРЅРёРјР°РµРј РІСЃРµ СЃРѕРґРµСЂР¶РёРјРѕРµ?
 	if (nodes_stack_.empty() && !in_use) {
 		root_ = std::move(value);
 		in_use = true;
@@ -22,7 +22,7 @@ Builder::BaseContext Builder::Value(Node::Value value) {
 		const_cast<Array&>(nodes_stack_.back()->AsArray()).emplace_back(std::move(value));
 	}
 	else if (!nodes_stack_.empty() && nodes_stack_.back()->IsDict() && key_set) {
-		//добавляем в словарь пару ключ - значение
+		//РґРѕР±Р°РІР»СЏРµРј РІ СЃР»РѕРІР°СЂСЊ РїР°СЂСѓ РєР»СЋС‡ - Р·РЅР°С‡РµРЅРёРµ
 		const_cast<Dict&>(nodes_stack_.back()->AsDict()).emplace(std::move(dict_key_), std::move(value));
 		key_set = false;
 	}
@@ -54,7 +54,7 @@ void Builder::StartContainer(T) {
 		nodes_stack_.push_back(&const_cast<Node&>(nodes_stack_.back()->AsArray().back()));
 	}
 	else if (!nodes_stack_.empty() && key_set && nodes_stack_.back()->IsDict()) {
-		//добавляем в словарь пару ключ - значение
+		//РґРѕР±Р°РІР»СЏРµРј РІ СЃР»РѕРІР°СЂСЊ РїР°СЂСѓ РєР»СЋС‡ - Р·РЅР°С‡РµРЅРёРµ
 		const_cast<Dict&>(nodes_stack_.back()->AsDict()).emplace(dict_key_, T());
 		nodes_stack_.push_back(&const_cast<Node&>(nodes_stack_.back()->AsDict().at(dict_key_)));
 		key_set = false;

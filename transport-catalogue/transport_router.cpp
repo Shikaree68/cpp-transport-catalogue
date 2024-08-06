@@ -9,7 +9,7 @@ namespace router {
 		kitt_ = std::make_unique<graph::Router<double>>(dwg_);
 	}
 	void TransportRouter::FillGraph() {
-		//добавляем ребра остановок и структуру
+		//РґРѕР±Р°РІР»СЏРµРј СЂРµР±СЂР° РѕСЃС‚Р°РЅРѕРІРѕРє Рё СЃС‚СЂСѓРєС‚СѓСЂСѓ
 		const auto& stops{ tc_.GetAllStops() };
 		for (const auto& stop : stops) {
 			dwg_.AddEdge({
