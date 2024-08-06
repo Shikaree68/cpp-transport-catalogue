@@ -36,3 +36,4 @@
 /.vs
 /transport-catalogue/TC_final.vcxproj.filters
 *.txt
+/transport-catalogue/build
