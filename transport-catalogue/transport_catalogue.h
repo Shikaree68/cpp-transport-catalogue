@@ -14,7 +14,7 @@ namespace TC {
 	class TransportCatalogue {
 	public:
 		void AddStop(const detail::Stop&& stop);
-		//РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РёРјСЏ, РѕСЃС‚Р°РЅРѕРІРєРё, РєРѕР»СЊС†Рѕ
+		//достаточно имя, остановки, кольцо
 		void AddBus(const detail::Bus&& bus);
 
 		const detail::Stop* FindStop(const std::string_view stop) const;
